@@ -118,6 +118,44 @@ def id_photo_background_red_to_white(id_red_photo_path, id_white_photo_path):
     print("证件照：红底转白底成功，文件已保存！")
     return True
 
+def resize_photo(img: np.ndarray, w: int, h: int):
+    """
+    生成标准尺寸证件照（等比例缩放 + 居中白底）
+    :param img: 证件照
+    :param w: 目标宽度
+    :param h: 目标高度
+    :return: 生成的标准尺寸证件照
+    """
+    if w <= 0 or h <= 0:
+        raise ValueError("目标宽度和高度必须大于0")
+
+    # 获取原图高度和宽度
+    h_orig, w_orig = img.shape[:2]
+    # 计算缩放比例
+    scale = min(w / w_orig, h / h_orig)
+    # 计算新图像的宽度和高度
+    w_new = int(w_orig * scale)
+    h_new = int(h_orig * scale)
+
+    # 判断缩放比例
+    if scale < 1:
+        # 缩小，使用INTER_AREA插值方法。综合周围多个原始像素的信息，再计算一个新的像素值
+        interpolation = cv2.INTER_AREA
+    else:
+        # 放大，使用INTER_CUBIC插值方法。需要根据附近像素估算出新的像素
+        interpolation = cv2.INTER_CUBIC
+    # 等比例缩放图片
+    img = cv2.resize(img, (w_new, h_new), interpolation=interpolation)
+    # 创建目标尺寸的纯白色背景
+    white_bg = np.full((h, w, 3),255, dtype=np.uint8)
+
+    # 计算居中偏移坐标
+    x_offset = (w - w_new) // 2
+    y_offset = (h - h_new) // 2
+    # 将缩放后的图片粘贴到白色背景图层
+    white_bg[y_offset:y_offset + h_new, x_offset:x_offset + w_new] = img
+    return white_bg
+
 
 # 定义图片所在路径
 image_path = './images/'
@@ -133,10 +171,13 @@ id_blue_to_white_path = os.path.join(image_path, id_white_filename)
 # 调用转换函数
 blue_to_white_flag = id_photo_background_blue_to_white(id_blue_path, id_blue_to_white_path)
 if blue_to_white_flag:
-    blue_to_white_flag = cv2.imread(id_blue_to_white_path)
-    if blue_to_white_flag is not None:
+    blue_to_white_img = cv2.imread(id_blue_to_white_path)
+    if blue_to_white_img is not None:
         # 展示白底证件照图片
-        cv2.imshow('id blue to white img', blue_to_white_flag)
+        cv2.imshow('id blue to white img', blue_to_white_img)
+        # 生成1寸证件照
+        one_inch_img = resize_photo(blue_to_white_img, 295, 413)
+        cv2.imshow('one inch img', one_inch_img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
@@ -153,9 +194,12 @@ id_red_to_white_path = os.path.join(image_path, id_red_white_filename)
 # 调用转换函数
 red_to_white_flag = id_photo_background_red_to_white(id_red_path, id_red_to_white_path)
 if red_to_white_flag:
-    red_to_white_flag = cv2.imread(id_red_to_white_path)
-    if red_to_white_flag is not None:
+    red_to_white_img = cv2.imread(id_red_to_white_path)
+    if red_to_white_img is not None:
         # 展示白底证件照图片
-        cv2.imshow('id red to white img', red_to_white_flag)
+        cv2.imshow('id red to white img', red_to_white_img)
+        # 生成2寸证件照
+        two_inches_img = resize_photo(red_to_white_img, 413, 626)
+        cv2.imshow('two inches img', two_inches_img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
